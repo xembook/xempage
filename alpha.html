@@ -34,11 +34,9 @@
 	<div class="collapse" id="div3">
 		<hr>
 		<ul class="nav nav-tabs">
-			<li class="nav-item"><a href="#tab_contact"  data-toggle="tab" class="nav-link active">口座</a></li>
-			<li class="nav-item"><a href="#tab_selfsign" data-toggle="tab" class="nav-link" 	  >自署</a></li>
-			<li class="nav-item"><a href="#tab_confirm"  data-toggle="tab" class="nav-link" 	  >承認</a></li>
-			<li class="nav-item"><a href="#tab_verify"	 data-toggle="tab" class="nav-link" 	  >検証</a></li>
+			<li class="nav-item"><a href="#tab_contact"  data-toggle="tab" class="nav-link active">アカウント</a></li>
 			<li class="nav-item"><a href="#tab_handover" data-toggle="tab" class="nav-link" 	  >譲渡</a></li>
+
 		</ul>
 
 		<div class="tab-content">
@@ -49,70 +47,11 @@
 
 					<img class="card-img-top" id="contact" alt="カードの画像">
 					<div class="card-body">
-						<h5 class="card-title">口座ID　<span id="disabled_contact" class="collapse badge badge-danger" >無効</span></h5>
+						<h5 class="card-title">アドレス</h5>
 						<p class="card-text" id="text_contact"></p>
-						<a id="cancel_contact" href="javascript:void(0);" class="btn btn-primary">無効化</a>
 					</div>
 				</div>
 			</div>
-
-			<!-- 自署 -->
-			<div id="tab_selfsign" class="tab-pane">
-
-				<label>署名テキスト:</label>
-				<input type="text" id="text_selfsign" class="form-control">
-				<div class="input-group">
-					<label class="input-group-btn">
-						<span class="btn btn-primary">
-							ファイル指紋挿入<input id="file_selfsign" type="file" style="display:none">
-						</span>
-					</label>
-				</div>
-				<div><button type="button" id="button_selfsign" class="btn btn-primary">
-					<span id="spinner_selfsign" class="collapse spinner-border spinner-border-sm" role="status"></span>
-
-					押印</button></div>
-				<div id="confirmed_selfsign"><ul></ul></div>
-			</div>
-
-			<!-- 承認 -->
-			<div id="tab_confirm" class="tab-pane">
-				<div><b>申請者情報:</b> <span id="scan_data_confirm" class="text-break"></span></div>
-				<div class="collapse" id="div_text_confirm">
-					<label><b>承認テキスト:</b></label>
-					<input type="text" id="text_confirm" class="form-control">
-					<div class="input-group">
-						<label class="input-group-btn">
-							<span class="btn btn-primary">
-								申請書ファイルの指紋挿入<input id="file_confirm" type="file" style="display:none">
-							</span>
-						</label>
-					</div>
-				</div>
-
-				<div>
-					<button type="button" id="button_confirm" class="btn btn-primary">
-						<span id="spinner_confirm" class="collapse spinner-border spinner-border-sm" role="status"></span>
-						押印
-					</button></div>
-				<div class="collapse" id="div_cancel_confirm">
-					<button type="button" id="cancel_confirm" class="btn btn-primary">キャンセル</button>
-				</div>
-				<div id="confirmed_confirm"><ul></ul></div>
-			</div>
-
-			<!-- 検証 -->
-			<div id="tab_verify" class="tab-pane">
-				<div><b>承認者署名ID:</b> <span id="scan_data_verify" class="text-break"></span></div>
-				<div id="confirmed_verify"><ul></ul></div>
-				<div>
-					<button type="button" id="button_auth" class="btn btn-primary">
-						<span id="spinner_auth" class="collapse spinner-border spinner-border-sm" role="status"></span>
-						認証
-					</button>
-				</div>
-			</div>
-
 			<!-- 譲渡 -->
 			<div id="tab_handover" class="tab-pane">
 				<div><b>譲渡先ID:</b> <span id="scan_data_handover" class="text-break"></span></div>
@@ -122,6 +61,7 @@
 						譲渡
 					</button></div>
 			</div>
+
 		</div>
 	</div><!-- div3 -->
 </div>
@@ -161,7 +101,7 @@
 	<div class="modal-dialog" role="document">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title">はんこ選択</h5>
+				<h5 class="modal-title">マルチシグ選択</h5>
 				<button type="button" class="close" data-dismiss="modal" aria-label="閉じる">
 					<span aria-hidden="true">&times;</span>
 				</button>
@@ -405,7 +345,6 @@ function setSignerListener(cosignerAccount){
 	}
 
 	const bondedListener = listener.aggregateBondedAdded(cosignerAccount.address)
-//	const bondedHttp = accountHttp.getAccountPartialTransactions(cosignerAccount.address)
 	const bondedHttp = txHttp.search({address:cosignerAccount.address,group:nem.TransactionGroup.Partial})
 	.pipe(
 		op.delay(2000),
@@ -464,15 +403,12 @@ function showAccountQR(x){
 	const contactQR = new qr.ContactQR("xemhanco.contact.1",assetPublicAccount);
 	contactQR.toBase64().subscribe(x => {
 		$('#contact').attr('src',x);
-		$('#text_contact').text(assetPublicAccount.publicKey);
+		$('#text_contact').text(assetPublicAccount.address.plain());
 	});
 
 
 	const key = nem.KeyGenerator.generateUInt64Key(assetPublicAccount.publicKey);
 	metaHttp.search({sourceAddress:assetPublicAccount.address,scopedMetadataKey:key.toHex(),targetAddress:assetPublicAccount.address,metadataType:nem.MetadataType.Account})
-
-
-//	metaHttp.getAccountMetadataByKeyAndSender(assetPublicAccount.address,key.toHex(),assetPublicAccount.address)
 	.pipe(
 		op.mergeMap(page => page.data),
 		op.filter(_=> _.metadataEntry.value == "disabled")
@@ -482,156 +418,6 @@ function showAccountQR(x){
 	},err => console.log(err));
 
 
-}
-
-//押印（自署・承認）
-//confirmedAddress:承認先
-function signByHanco(confirmedAddress,divId,message){
-
-	const tx = nem.TransferTransaction.create(
-		nem.Deadline.create(),
-		confirmedAddress,[],
-		nem.PlainMessage.create(message),
-		nem.NetworkType.TEST_NET,
-		nem.UInt64.fromUint(100000)
-	);
-
-	const aggregateTx = nem.AggregateTransaction.createComplete(
-		nem.Deadline.create(),
-		[tx.toAggregate(assetPublicAccount)],
-		nem.NetworkType.TEST_NET,[],
-		nem.UInt64.fromUint(100000)
-	);
-
-	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
-	const signedTx = signerQR.account.sign(aggregateTx,GENERATION_HASH);
-	delete signerQR;
-
-	$('#spinner_'+divId).collapse('show');
-
-	const txHttp = new nem.TransactionHttp(NODE);
-	txHttp.announce(signedTx)
-	.pipe(
-		op.mergeMap(_=> assetSignedTxConfirmed(signedTx.hash))
-	)
-	.subscribe(function(_){
-
-		$('#confirmed_' + divId + ' ul')
-		.append('<li><a target="_blank" href="' + EXPLORER + '/transaction/' + signedTx.hash + '">エクスプローラーで確認</a></li>');
-
-		const object = {"name":"xemhanco.tx.1","hash": signedTx.hash};
-		var obj = qr.QRCodeGenerator.createExportObject(object);
-		obj.generationHash = "";
-		obj.toBase64().subscribe(x=>{
-
-			$('#confirmed_' + divId + ' ul')
-			.append('<li><img src=' + x + '></li>');
-		});
-	},err => {
-		alert(err);
-		console.error(err);
-	}).add(() => $('#spinner_' + divId).collapse('hide'));
-
-	console.log(NODE + "/transactionStatus/" + signedTx.hash);
-	console.log(NODE + "/transactions/confirmed/" + signedTx.hash);
-}
-
-//無効化
-async function addMeta(callback){
-
-	const key = nem.KeyGenerator.generateUInt64Key(assetPublicAccount.publicKey);
-	const value = 'disabled';
-
-	const metaTx = await metaService.createAccountMetadataTransaction(
-		nem.Deadline.create(),
-		nem.NetworkType.TEST_NET,
-		assetPublicAccount.address,//target
-		key,value,
-		assetPublicAccount.address, // sender
-		nem.UInt64.fromUint(100000)
-
-	).toPromise();
-
-	const aggregateTx = nem.AggregateTransaction.createComplete(
-		nem.Deadline.create(),
-		[metaTx.toAggregate(assetPublicAccount)],
-		nem.NetworkType.TEST_NET,[],
-		nem.UInt64.fromUint(100000)
-	);
-
-	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
-	const signedTx = signerQR.account.sign(aggregateTx,GENERATION_HASH);
-	delete signerQR;
-
-	const res = await txHttp.announce(signedTx).toPromise();
-	callback(signedTx);
-	console.log(NODE + "/transactionStatus/" + signedTx.hash);
-	console.log(NODE + "/transactions/confirmed/" + signedTx.hash);
-
-}
-
-//認証
-async function addAuth(){
-
-	const tx = await txHttp.getTransaction($('#confirmed_verify_hash').text(),nem.TransactionGroup.Confirmed).toPromise();
-	const ac = await accountHttp.getAccountInfo(tx.innerTransactions[0].recipientAddress).toPromise();
-	const targetPublicAccount = nem.PublicAccount.createFromPublicKey(ac.publicKey,nem.NetworkType.TEST_NET)
-	const key = nem.KeyGenerator.generateUInt64Key(assetPublicAccount.publicKey);
-	const value = 'authenticated';
-	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
-
-	metaService.createAccountMetadataTransaction(
-		nem.Deadline.create(),
-		nem.NetworkType.TEST_NET,
-		targetPublicAccount.address,//target
-		key,value,
-		assetPublicAccount.address, // sender
-		nem.UInt64.fromUint(100000)
-	).subscribe(metaTx=>{
-
-		$('#spinner_auth').collapse('show');
-
-		exeAggBondedTx(metaTx,targetPublicAccount,signerQR.account,async function(aggTx){
-
-			const bh = await blockHttp.getBlockByHeight(aggTx.transactionInfo.height).toPromise();
-			$('#confirmed_verify ul')
-			.append('<li><b>認証日時:</b> <span>' + dispTimeStamp(bh.timestamp.compact() + SYMBOL_EPOCH * 1000) + '</span></li>');
-			delete signerQR;
-		},function(){$('#spinner_auth').collapse('hide')});
-	});
-}
-
-//譲渡
-function handoverHanco(targetPulicKey){
-
-	const targetPublicAccount = nem.PublicAccount.createFromPublicKey(targetPulicKey,nem.NetworkType.TEST_NET)
-	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
-
-	var msigTx;
-	if(signerQR.account.publicKey === assetPublicAccount.publicKey){
-
-		//初譲渡（所有化）
-		msigTx = nem.MultisigAccountModificationTransaction.create(
-			nem.Deadline.create(),
-			1,1,[targetPublicAccount.address],[],nem.NetworkType.TEST_NET
-		);
-
-	}else{
-
-		//再譲渡(所有移転)
-		msigTx = nem.MultisigAccountModificationTransaction.create(
-			nem.Deadline.create(),
-			0,0,[targetPublicAccount.address],[signerQR.account.address],nem.NetworkType.TEST_NET
-		);
-	}
-
-	$('#spinner_handover').collapse('show');
-	exeAggBondedTx(msigTx,targetPublicAccount,signerQR.account,function(){
-
-
-		alert("譲渡完了しました");
-		delete signerQR;
-	},function(){$('#spinner_handover').collapse('hide')});
 }
 
 //アグリゲートボンデッドトランザクション
@@ -710,20 +496,43 @@ function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
 	});
 }
 
-//キャンセル
-function cancelSign(hash){addMeta(_ => {})} //トランザクションキャンセル
-function cancelHanco(){ ////はんこキャンセル
-	addMeta(signedTx => {
 
-		assetSignedTxConfirmed(signedTx.hash)
-		.subscribe(function(_){
-			$('#disabled_contact').collapse('show');
-		},err => {
-			alert(err);
-			console.error(err);
-		});
-	});
+
+
+//譲渡
+function handoverHanco(targetPulicKey){
+
+	const targetPublicAccount = nem.PublicAccount.createFromPublicKey(targetPulicKey,nem.NetworkType.TEST_NET)
+	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
+
+	var msigTx;
+	if(signerQR.account.publicKey === assetPublicAccount.publicKey){
+
+		//初譲渡（所有化）
+		msigTx = nem.MultisigAccountModificationTransaction.create(
+			nem.Deadline.create(),
+			1,1,[targetPublicAccount.address],[],nem.NetworkType.TEST_NET
+		);
+
+	}else{
+
+		//再譲渡(所有移転)
+		msigTx = nem.MultisigAccountModificationTransaction.create(
+			nem.Deadline.create(),
+			0,0,[targetPublicAccount.address],[signerQR.account.address],nem.NetworkType.TEST_NET
+		);
+	}
+
+	$('#spinner_handover').collapse('show');
+	exeAggBondedTx(msigTx,targetPublicAccount,signerQR.account,function(){
+
+
+		alert("譲渡完了しました");
+		delete signerQR;
+	},function(){$('#spinner_handover').collapse('hide')});
 }
+
+
 
 //■■■CONTROLLER■■■
 
@@ -731,17 +540,7 @@ function cancelHanco(){ ////はんこキャンセル
 $(".nav-item a").click( function(e){
 
 	if( this.href.indexOf("tab_confirm") > 0){
-
-		$('#modal-label').text("承認したいQRコードをスキャンしてください")
-		$('#modal-qrscan').modal('show');
-		startVideo("confirm");
-
 	}else if(this.href.indexOf("tab_verify" ) > 0){
-
-		$('#modal-label').text("検証したいQRコードをスキャンしてください")
-		$('#modal-qrscan').modal('show');
-		startVideo("verify");
-
 	}else if(this.href.indexOf("tab_handover" ) > 0){
 
 		$('#modal-label').text("譲渡先のQRコードをスキャンしてください")
@@ -763,56 +562,10 @@ $("#modal_ok").click(function(){
 	//承認
 	if(currentTab == "tab_confirm"){
 
-		$('#scan_data_confirm').text(scanData.innerText);
-		const jsonData = JSON.parse(scanData.innerText).data;
-		if(jsonData.name == 'xemhanco.tx.1'){
-
-			$('#div_text_confirm').collapse('hide');
-
-			txHttp.getTransaction(jsonData.hash,nem.TransactionGroup.Confirmed)
-			.pipe(
-				op.filter(tx => tx.signer.publicKey === assetPublicAccount.publicKey)
-			)
-			.subscribe(_ => $('#div_cancel_confirm').collapse('show'));
-		}else{
-			$('#div_text_confirm').collapse('show');
-		}
 
 	//検証
 	}else if(currentTab == "tab_verify"){
 
-		(async() => {
-			const tx = await txHttp.getTransaction(jsonData.hash,nem.TransactionGroup.Confirmed).toPromise();
-
-			const bh = await blockHttp.getBlockByHeight(tx.transactionInfo.height).toPromise();
-			const key = nem.KeyGenerator.generateUInt64Key(tx.transactionInfo.hash);
-//			await metaHttp.getAccountMetadataByKeyAndSender(tx.signer.address,key.toHex(),tx.signer.publicKey)
-			await metaHttp.search({
-				sourceAddress:tx.signer.address,
-				scopedMetadataKey:key.toHex(),
-				targetAddress:tx.signer.address,
-				metadataType:nem.MetadataType.Account
-			})
-//			await metaHttp.getAccountMetadataByKeyAndSender(tx.signer.address, key.toHex(), tx.signer.address)
-			.toPromise().then(mt=>{
-				console.log(mt);
-				if(mt.metadataEntry.value === "disabled"){
-					$('#confirmed_verify ul')
-					.append('<li><span class="badge badge-danger" >無効</span></li>');
-				}else if(mt.metadataEntry.value === "authenticated"){
-					$('#confirmed_verify ul')
-					.append('<li><b>認証日時:</b> <span>' + dispTimeStamp(bh.timestamp.compact() + SYMBOL_EPOCH * 1000) + '</span></li>');
-				}
-			})
-			.catch(err=>console.error(err));
-
-			$('#confirmed_verify ul')
-			.append('<li><a target="_blank" href="' + EXPLORER + '/transaction/' + tx.transactionInfo.hash + '">エクスプローラーで確認</a></li>')
-			.append('<li><b>口座ID:</b> <span id="confirmed_verify_publicKey">'    + tx.innerTransactions[0].signer.publicKey	 + '</span></li>')
-			.append('<li><b>TX hash:</b> <span id="confirmed_verify_hash">'	+ tx.transactionInfo.hash + '</span></li>')
-			.append('<li><b>署名テキスト:</b> <span>' + tx.innerTransactions[0].message.payload		+ '</span></li>')
-			.append('<li><b>タイムスタンプ:</b> <span>' + dispTimeStamp(bh.timestamp.compact()	+ SYMBOL_EPOCH * 1000) + '</span></li>');
-		})();
 
 	//譲渡
 	}else if(currentTab == "tab_handover"){
@@ -852,6 +605,7 @@ $("#modal_ok").click(function(){
 			+ '</button>'
 			);
 		};
+
 		//マルチシグ保有調査
 		multisigHttp.getMultisigAccountInfo(assetPublicAccount.address)
 		.subscribe(_=>{
@@ -864,7 +618,7 @@ $("#modal_ok").click(function(){
 				.subscribe(items => {
 
 					for (item of items) {
-						appendList(item.publicKey,item.publicKey);
+						appendList(item.publicKey,item.address.plain());
 					}
 				})
 
@@ -926,16 +680,6 @@ $("#restore").click(function(){
 	startVideo("");
 });
 
-//無効化：アカウント・トランザクション
-$("#cancel_contact").click(function(){ cancelHanco();});
-$("#cancel_confirm").click(function(){
-
-	const jsonData = JSON.parse($('#scan_data_confirm').text()).data;
-	if(jsonData.name == 'xemhanco.tx.1'){
-
-		cancelSign(jsonData.hash);
-	}
-});
 
 //スキャンモーダルが閉じられた時
 $('#modal-qrscan').on('hide.bs.modal', function (e) {
@@ -946,36 +690,7 @@ $('#modal-qrscan').on('hide.bs.modal', function (e) {
 	scanData.innerText = "";
 });
 
-//自署:押印
-$('#button_selfsign').click(function(e) {
 
-	//自分（マルチシグ選択中）のアカウントに対して承認
-	//メッセージは＃text_selfsignで指定
-	signByHanco(assetPublicAccount.address,"selfsign",$("#text_selfsign").val())});
-
-//承認：押印
-$('#button_confirm' ).click(function(e) {
-
-	const jsonData = JSON.parse($('#scan_data_confirm').text()).data;
-	if(jsonData.name == 'xemhanco.contact.1'){
-
-		//申請アカウント（口座ID）に対して承認
-		//メッセージは＃text_confirmで指定
-		const confirmedAccount = nem.PublicAccount.createFromPublicKey(jsonData.publicKey,nem.NetworkType.TEST_NET);
-		signByHanco(confirmedAccount.address,"confirm",$("#text_confirm").val())
-
-	}else if(jsonData.name == 'xemhanco.tx.1'){
-
-		//トランザクションに対して承認
-		//メッセージはtx hash値固定
-		txHttp.getTransaction(jsonData.hash,nem.TransactionGroup.Confirmed).subscribe(x=>{
-			signByHanco(x.signer.address,"confirm",jsonData.hash)
-		});
-
-	}else{
-		alert("承認できないデータです");
-	}
-});
 
 $('#file_image'		).change(function(e){scanFileImage();});
 $('#file_confirm'	).change(function(e){setFileHash('confirm')});
