@@ -35,6 +35,7 @@
 		<hr>
 		<ul class="nav nav-tabs">
 			<li class="nav-item"><a href="#tab_contact"  data-toggle="tab" class="nav-link active">アカウント</a></li>
+			<li class="nav-item"><a href="#tab_transfer"  data-toggle="tab" class="nav-link active">送信</a></li>
 			<li class="nav-item"><a href="#tab_handover" data-toggle="tab" class="nav-link" 	  >譲渡</a></li>
 
 		</ul>
@@ -52,6 +53,16 @@
 					</div>
 				</div>
 			</div>
+			<!-- 譲渡 -->
+			<div id="tab_transfer" class="tab-pane">
+				<div><b>送信先アドレス:</b> <span id="scan_data_address" class="text-break"></span></div>
+				<div>
+					<button type="button" id="button_handover" class="btn btn-primary">
+						<span id="spinner_handover" class="collapse spinner-border spinner-border-sm" role="status"></span>
+						送信
+					</button></div>
+			</div>
+
 			<!-- 譲渡 -->
 			<div id="tab_handover" class="tab-pane">
 				<div><b>譲渡先ID:</b> <span id="scan_data_handover" class="text-break"></span></div>
@@ -526,7 +537,11 @@ function handoverHanco(targetPulicKey){
 //タブ選択時
 $(".nav-item a").click( function(e){
 
-	if( this.href.indexOf("tab_confirm") > 0){
+	if( this.href.indexOf("tab_transfer") > 0){
+		$('#modal-label').text("送信先のQRコードをスキャンしてください")
+		$('#modal-qrscan').modal('show');
+		startVideo("transfer");
+
 	}else if(this.href.indexOf("tab_verify" ) > 0){
 	}else if(this.href.indexOf("tab_handover" ) > 0){
 
@@ -547,7 +562,7 @@ $("#modal_ok").click(function(){
 	const jsonData = JSON.parse(scanData.innerText).data;
 
 	//承認
-	if(currentTab == "tab_confirm"){
+	if(currentTab == "tab_transfer"){
 
 
 	//検証
