@@ -21,7 +21,7 @@
 	</div><!-- div1 -->
 
 	<div class="collapse" id="div2">
-		<div><img id="hanco"></div>
+		<div><img id="qr_account"></div>
 		<div>
 			<button type="button" id="button_faucet" class="btn btn-primary">
 				<span id="spinner_faucet" class="collapse spinner-border spinner-border-sm" role="status"></span>
@@ -45,7 +45,7 @@
 			<div id="tab_contact" class="tab-pane active">
 				<div class="card" style="width: 18rem;">
 
-					<img class="card-img-top" id="contact" alt="カードの画像">
+					<img class="card-img-top" id="qr_contact" alt="カードの画像">
 					<div class="card-body">
 						<h5 class="card-title">アドレス</h5>
 						<p class="card-text" id="text_contact"></p>
@@ -96,7 +96,7 @@
 	</div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 
-<!-- はんこ選択モーダル -->
+<!-- アカウント選択モーダル -->
 <div class="modal fade" id="modal-msig" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
 	<div class="modal-dialog" role="document">
 		<div class="modal-content">
@@ -293,7 +293,7 @@ function scanFileImage(){
 }
 ////////////////////////////////////////////////////////
 
-//選択中はんこの完了トランザクション検知リスナー
+//選択中アカウントの完了トランザクション検知リスナー
 const assetSignedTxConfirmed = function(signedTxHash){
 
 	const transactionObservable = listener.confirmed(assetPublicAccount.address);
@@ -400,24 +400,11 @@ function showAccountQR(x){
 		$('#spinner_faucet').collapse('show')
 	},err => console.error(err));
 
-	const contactQR = new qr.ContactQR("xemhanco.contact.1",assetPublicAccount);
+	const contactQR = new qr.ContactQR("xempage.contact.1",assetPublicAccount);
 	contactQR.toBase64().subscribe(x => {
-		$('#contact').attr('src',x);
+		$('#qr_contact').attr('src',x);
 		$('#text_contact').text(assetPublicAccount.address.plain());
 	});
-
-
-	const key = nem.KeyGenerator.generateUInt64Key(assetPublicAccount.publicKey);
-	metaHttp.search({sourceAddress:assetPublicAccount.address,scopedMetadataKey:key.toHex(),targetAddress:assetPublicAccount.address,metadataType:nem.MetadataType.Account})
-	.pipe(
-		op.mergeMap(page => page.data),
-		op.filter(_=> _.metadataEntry.value == "disabled")
-	)
-	.subscribe(_=>{
-		$('#disabled_contact').collapse('show');
-	},err => console.log(err));
-
-
 }
 
 //アグリゲートボンデッドトランザクション
@@ -585,7 +572,7 @@ $("#modal_ok").click(function(){
 			signerQR.toBase64().subscribe(x => {
 				$('#div1').collapse('hide');
 				$('#div2').collapse('show');
-				$('#hanco').attr('src',x);
+				$('#qr_account').attr('src',x);
 			});
 			signerJSON = signerQR.toJSON();
 			delete signerQR;
@@ -665,7 +652,7 @@ $("#create").click(function(){
 		showAccountQR(x);
 		$('#div1').collapse('hide');
 		$('#div2').collapse('show');
-		$('#hanco').attr('src',x);
+		$('#qr_account').attr('src',x);
 	});
 	signerJSON = signerQR.toJSON();
 	delete asset;
