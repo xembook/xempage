@@ -35,7 +35,7 @@
 		<hr>
 		<ul class="nav nav-tabs">
 			<li class="nav-item"><a href="#tab_contact"  data-toggle="tab" class="nav-link active">アカウント</a></li>
-			<li class="nav-item"><a href="#tab_transfer"  data-toggle="tab" class="nav-link active">送信</a></li>
+			<li class="nav-item"><a href="#tab_transfer"  data-toggle="tab" class="nav-link">送信</a></li>
 			<li class="nav-item"><a href="#tab_handover" data-toggle="tab" class="nav-link" 	  >譲渡</a></li>
 
 		</ul>
@@ -55,12 +55,15 @@
 			</div>
 			<!-- 譲渡 -->
 			<div id="tab_transfer" class="tab-pane">
-				<div><b>送信先アドレス:</b> <span id="scan_data_address" class="text-break"></span></div>
+				<div><b>送信先公開鍵:</b> <span id="scan_data_transfer" class="text-break"></span></div>
+				<div><b>送信先アドレス:</b> <span id="scan_data_transfer_address" class="text-break"></span></div>
 				<div>
-					<button type="button" id="button_handover" class="btn btn-primary">
-						<span id="spinner_handover" class="collapse spinner-border spinner-border-sm" role="status"></span>
+					<button type="button" id="button_transfer" class="btn btn-primary">
+						<span id="spinner_transfer" class="collapse spinner-border spinner-border-sm" role="status"></span>
 						送信
 					</button></div>
+					<div id="confirmed_transfer"><ul></ul></div>
+
 			</div>
 
 			<!-- 譲渡 -->
@@ -149,8 +152,10 @@ const SYMBOL_EPOCH = 1573430400;
 const CURRENCY = "5E62990DCAC5BE8A";
 const GENERATION_HASH = "1DFB2FAA9E7F054168B0C5FCB84F4DEB62CC2B4D317D861F3168D161F54EA78B";
 
-const NODE     = 'https://sym-test963.opening-line.jp:3001';
-//const NODE   = 'http://api-01.ap-northeast-1.096x.symboldev.network:3000';
+//const NODE     = 'https://sym-test964.opening-line.jp:3001';
+const NODE   = 'http://api-01.ap-northeast-1.096x.symboldev.network:3000';
+//const NODE     = 'https://0963-api.48gh23s.xyz:3001';
+
 const FAUCET   = 'http://faucet-96x-01.symboldev.network';
 const EXPLORER = 'http://explorer-96x.symboldev.network';
 
@@ -494,6 +499,47 @@ function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
 	});
 }
 
+function signByHanco(confirmedAddress,divId,message){
+
+	const tx = nem.TransferTransaction.create(
+		nem.Deadline.create(),
+		confirmedAddress,[],
+		nem.PlainMessage.create(message),
+		nem.NetworkType.TEST_NET,
+		nem.UInt64.fromUint(100000)
+	);
+
+	const aggregateTx = nem.AggregateTransaction.createComplete(
+		nem.Deadline.create(),
+		[tx.toAggregate(assetPublicAccount)],
+		nem.NetworkType.TEST_NET,[],
+		nem.UInt64.fromUint(100000)
+	);
+
+	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
+	const signedTx = signerQR.account.sign(aggregateTx,GENERATION_HASH);
+	delete signerQR;
+
+	$('#spinner_'+divId).collapse('show');
+
+	const txHttp = new nem.TransactionHttp(NODE);
+	txHttp.announce(signedTx)
+	.pipe(
+		op.mergeMap(_=> assetSignedTxConfirmed(signedTx.hash))
+	)
+	.subscribe(function(_){
+
+		$('#confirmed_' + divId + ' ul')
+		.append('<li><a target="_blank" href="' + EXPLORER + '/transaction/' + signedTx.hash + '">エクスプローラーで確認</a></li>');
+
+	},err => {
+		alert(err);
+		console.error(err);
+	}).add(() => $('#spinner_' + divId).collapse('hide'));
+
+	console.log(NODE + "/transactionStatus/" + signedTx.hash);
+	console.log(NODE + "/transactions/confirmed/" + signedTx.hash);
+}
 
 
 
@@ -563,6 +609,10 @@ $("#modal_ok").click(function(){
 
 	//承認
 	if(currentTab == "tab_transfer"){
+
+		$('#scan_data_transfer').text(jsonData.publicKey);
+		const targetPublicAccount = nem.PublicAccount.createFromPublicKey(jsonData.publicKey,nem.NetworkType.TEST_NET)
+		$('#scan_data_transfer_address').text(targetPublicAccount.address.plain());
 
 
 	//検証
@@ -683,6 +733,9 @@ $("#restore").click(function(){
 });
 
 
+
+
+
 //スキャンモーダルが閉じられた時
 $('#modal-qrscan').on('hide.bs.modal', function (e) {
 
@@ -699,6 +752,9 @@ $('#file_confirm'	).change(function(e){setFileHash('confirm')});
 $('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
 $("#button_auth"	).click(function(){addAuth()});
 $("#button_handover").click(function(){handoverHanco($('#scan_data_handover').text())});
+$("#button_transfer").click(function(){
+	signByHanco(assetPublicAccount.address,"transfer","")});
+});
 $("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 $('#div1').collapse('show');//アプリケーション開始
 })</script>
