@@ -665,7 +665,7 @@ $("#list-msig").on("click",".button-msig", function() {	//マルチシグ選択
 	showAccountQR();
 });
 
-("#create").click(function(){ //作成
+$("#create").click(function(){ //作成
 
 	const asset = nem.Account.generateNewAccount(nem.NetworkType.TEST_NET);
 	console.log(asset);
@@ -686,7 +686,7 @@ $("#list-msig").on("click",".button-msig", function() {	//マルチシグ選択
 
 $("#restore").click(function(){ //復元
 
-	$('#modal-label').text("復元したいNEMはんこのQRコードをスキャンしてください")
+	$('#modal-label').text("復元したいQRコードをスキャンしてください")
 	$('#modal-qrscan').modal('show');
 	startVideo("");
 });
