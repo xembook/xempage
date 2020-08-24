@@ -48,6 +48,12 @@
 			<div id="tab_transfer" class="tab-pane"><!-- 送信 -->
 				<div><b>送信先公開鍵:</b> <span id="scan_data_transfer" class="text-break"></span></div>
 				<div><b>送信先アドレス:</b> <span id="scan_data_transfer_address" class="text-break"></span></div>
+				<div><b>送信モザイク:</b> <select class="form-control" id="mosaic_transfer" name="number">
+		          <option value="5E62990DCAC5BE8A" selected="selected">XYM</option>
+		        </select>
+				</div>
+				<div><b>送信量:</b> <input type="text" id="amount_transfer" class="form-control"></div>
+
 				<div>
 					<button type="button" id="button_transfer" class="btn btn-primary">
 						<span id="spinner_transfer" class="collapse spinner-border spinner-border-sm" role="status"></span>
@@ -484,7 +490,13 @@ function exeTransfer(targetAddress,divId,message){
 
 	const tx = nem.TransferTransaction.create(
 		nem.Deadline.create(),
-		targetAddress,[],
+		targetAddress,
+		[
+			new nem.Mosaic(
+				new nem.MosaicId($("#mosaic_transfer").val()),
+				nem.UInt64.fromUint(Number($("#amount_transfer").val()) * 1000000)
+			)			
+		],
 		nem.PlainMessage.create(message),
 		nem.NetworkType.TEST_NET,
 		nem.UInt64.fromUint(100000)
