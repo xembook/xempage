@@ -175,12 +175,12 @@ listener.open().then(() => {
 });
 
 //グローバル変数
-var assetPublicAccount;//操作対象アカウント（マルチシグの場合は操作される対象のアカウント）
-var signerJSON;//暗号化済み署名者アカウント　変数名は変える必要あり
+var assetPublicAccount;	//操作対象アカウント（マルチシグの場合は操作される対象のアカウント）
+var signerJSON;			//暗号化済み署名者アカウント
 var canvasElement;
 var canvas;
 var scanData;
-var currentTab;
+var currentTab;			//カメラ操作している場合の現在選択中のタブ
 var isMovieScanning = false;
 var video = document.createElement("video");
 
@@ -564,7 +564,6 @@ $(".nav-item a").click( function(e){
 		$('#modal-qrscan').modal('show');
 		startVideo("transfer");
 
-	}else if(this.href.indexOf("tab_verify" ) > 0){
 	}else if(this.href.indexOf("tab_handover" ) > 0){
 
 		$('#modal-label').text("譲渡先のQRコードをスキャンしてください")
@@ -572,7 +571,6 @@ $(".nav-item a").click( function(e){
 		startVideo("handover");
 
 	}else{
-		//上記以外のタブ選択でビデオ止める
 		stopVideo();
 	}
 });
@@ -629,10 +627,9 @@ $("#modal_ok").click(function(){
 		multisigHttp.getMultisigAccountInfo(assetPublicAccount.address)
 		.subscribe(_=>{
 
-			console.log(_);
 			if(_.multisigAddresses.length > 0){
 
-				appendList(assetPublicAccount.publicKey,"マイはんこ");
+				appendList(assetPublicAccount.publicKey,"メインアカウント");
 				accountHttp.getAccountsInfo(_.multisigAddresses)
 				.subscribe(items => {
 
@@ -640,7 +637,6 @@ $("#modal_ok").click(function(){
 						appendList(item.publicKey,item.address.plain());
 					}
 				})
-
 				$('#modal-msig').modal('show');
 			}else{
 				if(_.cosignatories.length > 0){
