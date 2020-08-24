@@ -499,11 +499,11 @@ function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
 	});
 }
 
-function signByHanco(confirmedAddress,divId,message){
+function exeTransfer(targetAddress,divId,message){
 
 	const tx = nem.TransferTransaction.create(
 		nem.Deadline.create(),
-		confirmedAddress,[],
+		targetAddress,[],
 		nem.PlainMessage.create(message),
 		nem.NetworkType.TEST_NET,
 		nem.UInt64.fromUint(100000)
@@ -540,8 +540,6 @@ function signByHanco(confirmedAddress,divId,message){
 	console.log(NODE + "/transactionStatus/" + signedTx.hash);
 	console.log(NODE + "/transactions/confirmed/" + signedTx.hash);
 }
-
-
 
 //譲渡
 function handoverHanco(targetPulicKey){
@@ -732,10 +730,6 @@ $("#restore").click(function(){
 	startVideo("");
 });
 
-
-
-
-
 //スキャンモーダルが閉じられた時
 $('#modal-qrscan').on('hide.bs.modal', function (e) {
 
@@ -745,15 +739,13 @@ $('#modal-qrscan').on('hide.bs.modal', function (e) {
 	scanData.innerText = "";
 });
 
-
-
 $('#file_image'		).change(function(e){scanFileImage();});
 $('#file_confirm'	).change(function(e){setFileHash('confirm')});
 $('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
 $("#button_auth"	).click(function(){addAuth()});
 $("#button_handover").click(function(){handoverHanco($('#scan_data_handover').text())});
 $("#button_transfer").click(function(){
-	signByHanco(assetPublicAccount.address,"transfer","")});
+	exeTransfer(assetPublicAccount.address,"transfer","");
 });
 $("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 $('#div1').collapse('show');//アプリケーション開始
