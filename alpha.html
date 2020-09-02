@@ -93,13 +93,28 @@
 							画像でスキャン<input id="file_image" type="file" style="display:none">
 						</span>
 					</label>
+					<label class="input-group-btn">
+						<span class="btn btn-primary">
+							ネームスペース選択<input id="modal_ns" type="button" style="display:none">
+						</span>
+					</label>
+
 				</div>
+
+
 				<canvas id="canvas" hidden></canvas>
 				<div id="scan_data" class="text-break"></div>
+				<div class="collapse" id="div-qrscan">
+					<label>ネームスペース:</label>
+					<input type="text" id="text_namespace" class="form-control">
+					<button type="button"  id="button_namespace" class="btn btn-primary" >検索</button>
+				</div><!-- div1 -->
+
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
 				<button type="button" class="btn btn-primary" data-dismiss="modal"	id="modal_ok">OK</button>
+
 			</div><!-- /.modal-footer -->
 		</div><!-- /.modal-content -->
 	</div><!-- /.modal-dialog -->
@@ -144,9 +159,10 @@ const SYMBOL_EPOCH = 1573430400;
 const CURRENCY = "5E62990DCAC5BE8A";
 const GENERATION_HASH = "1DFB2FAA9E7F054168B0C5FCB84F4DEB62CC2B4D317D861F3168D161F54EA78B";
 
-const NODE   = 'https://0964-api.48gh23s.xyz:3001';
+
+const NODE = 'https://sym-test964.opening-line.jp:3001';
+//const NODE   = 'https://0964-api.48gh23s.xyz:3001';
 //const NODE = "https://conif1.tsvr.net:3001";
-//const NODE = 'https://sym-test964.opening-line.jp:3001';
 //const NODE = 'http://api-01.ap-northeast-1.096x.symboldev.network:3000';
 const FAUCET   = 'http://faucet-96x-01.symboldev.network';
 const EXPLORER = 'http://explorer-96x.symboldev.network';
@@ -495,7 +511,7 @@ function exeTransfer(targetAddress,divId,message){
 			new nem.Mosaic(
 				new nem.MosaicId($("#mosaic_transfer").val()),
 				nem.UInt64.fromUint(Number($("#amount_transfer").val()) * 1000000)
-			)			
+			)
 		],
 		nem.PlainMessage.create(message),
 		nem.NetworkType.TEST_NET,
@@ -717,6 +733,29 @@ $('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
 $("#button_handover").click(function(){exeHandover($('#scan_data_handover').text())});
 $("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer","");});
 $("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
+
+$("#button_namespace").click(function(){
+
+	namespaceId = new nem.NamespaceId('xembook1');
+	namespaceHttp = repo.createNamespaceRepository();
+
+	namespaceHttp
+	    .getNamespace(namespaceId)
+	    .subscribe((namespaceInfo) => {
+			console.log(namespaceInfo)
+scanData.innerText = '{"v":3,"type":1,"data":{"name":"xemhanco.contact.1","address":"' + namespaceInfo.ownerAddress.plain() + '"}}'
+
+		}, (err) => console.error(err));
+
+
+});
+
+
+
+$("#modal_ns").click(function(){
+	$('#div-qrscan').collapse('show');
+
+});
 
 $('#div1').collapse('show');//アプリケーション開始
 })</script>
