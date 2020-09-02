@@ -21,21 +21,7 @@
 	</div><!-- div1 -->
 	<div class="collapse" id="div2">
 		<div><img id="qr_account"></div>
-		<div>
-			<button type="button" id="button_faucet" class="btn btn-primary">
-				<span id="spinner_faucet" class="collapse spinner-border spinner-border-sm" role="status"></span>
-				Faucet
-			</button>
-		　<label id="amount">0 XYM</label>
-		</div>
 
-		<div>
-	<dl id="account_info">
-		<dt>口座名</dt><dd><span id="account_address"></span></dd>
-		<dt>残高</dt><dd><span id="account_balance"></span></dd>
-	</dl>
-
-		</div>
 
 
 	</div><!-- div2 -->
@@ -53,15 +39,29 @@
 					<div class="card-body">
 						<h5 class="card-title">アドレス</h5>
 						<p class="card-text" id="text_contact"></p>
+
+						<div>
+							<dl id="account_info">
+							</dl>
+
+						</div>
+						<div>
+							<button type="button" id="button_faucet" class="btn btn-primary">
+								<span id="spinner_faucet" class="collapse spinner-border spinner-border-sm" role="status"></span>
+								Faucet
+							</button>
+						</div>
+
+
+
+
 					</div>
 				</div>
 			</div>
 			<div id="tab_transfer" class="tab-pane"><!-- 送信 -->
 				<div><b>送信先公開鍵:</b> <span id="scan_data_transfer" class="text-break"></span></div>
 				<div><b>送信先アドレス:</b> <span id="scan_data_transfer_address" class="text-break"></span></div>
-				<div><b>送信モザイク:</b> <select class="form-control" id="mosaic_transfer" name="number">
-		          <option value="5E62990DCAC5BE8A" selected="selected">XYM</option>
-		        </select>
+				<div><b>送信モザイク:</b> <select class="form-control" id="mosaic_transfer" name="number"></select>
 				</div>
 				<div><b>送信量:</b> <input type="text" id="amount_transfer" class="form-control"></div>
 
@@ -417,7 +417,7 @@ function showAccountQR(x){
 			}),
 			op.map(_ => _.id),
 			op.toArray()
-			
+
 		)
 		.subscribe(_=>{
 
@@ -450,7 +450,12 @@ function showAccountQR(x){
 						mosaicLabel = mosaicName[0].mosaicId.toHex();
 					}
 					console.log(mosaicName);
-					$("#account_info ").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
+					$("#account_info").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
+//					$("#mosaic_transfer").append("<option id='" + mosaicName[0].mosaicId.toHex() + "’>" + mosaicLabel + "</option>");
+					$('#mosaic_transfer').append($('<option>').html(mosaicLabel).val(mosaicName[0].mosaicId.toHex()));
+
+
+
 				}
 			});
 
@@ -463,12 +468,12 @@ function showAccountQR(x){
 				$("#amount").text(dispAmount(_.amount.toString(),6) + " XYM");
 
 			}else{
-			
+
 
 				$( "#mosaic_list tbody" ).append( "<tr>" +
 					"<td class='text-left'><a href='#'><a id='mosaic_img' data-name='" + key + "' href='#'><img src='" + nemMosaicStatus[key]["url"] + "' alt='[NoImg]' width='32px'></a> " + key + "</td>" +
 					"<td>" + mosaic_balance + "</td>" +
-				"</tr>" );			
+				"</tr>" );
 			}
 */
 			$('#div3').collapse('show');
