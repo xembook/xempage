@@ -26,14 +26,25 @@
 				<span id="spinner_faucet" class="collapse spinner-border spinner-border-sm" role="status"></span>
 				Faucet
 			</button>
-		　<label id="amount">0 XYM</label></div>
+		　<label id="amount">0 XYM</label>
+		</div>
+
+		<div>
+	<dl id="account_info">
+		<dt>口座名</dt><dd><span id="account_address"></span></dd>
+		<dt>残高</dt><dd><span id="account_balance"></span></dd>
+	</dl>
+
+		</div>
+
+
 	</div><!-- div2 -->
 	<div class="collapse" id="div3">
 		<hr>
 		<ul class="nav nav-tabs">
 			<li class="nav-item"><a href="#tab_contact"  data-toggle="tab" class="nav-link active">アカウント</a></li>
 			<li class="nav-item"><a href="#tab_transfer"  data-toggle="tab" class="nav-link">送信</a></li>
-			<li class="nav-item"><a href="#tab_handover" data-toggle="tab" class="nav-link" 	  >譲渡</a></li>
+			<li class="nav-item"><a href="#tab_handover" data-toggle="tab" class="nav-link" >譲渡</a></li>
 		</ul>
 		<div class="tab-content">
 			<div id="tab_contact" class="tab-pane active"><!-- アカウント -->
@@ -93,12 +104,13 @@
 							画像でスキャン<input id="file_image" type="file" style="display:none">
 						</span>
 					</label>
-					<label class="input-group-btn">
-						<span class="btn btn-primary">
-							ネームスペース選択<input id="modal_ns" type="button" style="display:none">
-						</span>
-					</label>
-
+					<span  class="collapse" id="div-ns">
+						<label class="input-group-btn">
+							<span class="btn btn-primary">
+								ネームスペース選択<input id="modal_ns" type="button" style="display:none">
+							</span>
+						</label>
+					</span>
 				</div>
 
 
@@ -186,6 +198,7 @@ const blockHttp = new nem.BlockHttp(NODE);
 const receiptHttp = new nem.ReceiptHttp(NODE);
 const accountHttp = new nem.AccountHttp(NODE);
 const multisigHttp = new nem.MultisigHttp(NODE);
+const mosaicHttp = new nem.MosaicHttp(NODE);
 
 const metaService = new nem.MetadataTransactionService(metaHttp);
 const transactionService = new nem.TransactionService(txHttp, receiptHttp);
@@ -379,6 +392,7 @@ function setSignerListener(cosignerAccount){
 //アカウント情報表示
 function showAccountQR(x){
 
+/*
 	const accountSubscribe = function(observer){
 		observer.pipe(
 			op.mergeMap(_=>{
@@ -393,6 +407,78 @@ function showAccountQR(x){
 			$('#spinner_faucet').collapse('hide')
 		},err => console.log(err));
 	}
+*/
+
+	const accountSubscribe = function(observer){
+		observer.pipe(
+			op.mergeMap(_=>{
+				console.log(_);
+				return _.mosaics;
+			}),
+			op.map(_ => _.id),
+			op.toArray()
+			
+		)
+		.subscribe(_=>{
+
+			rxjs.zip(
+				observer
+				.pipe(
+					op.mergeMap(_=>_.mosaics),
+					op.toArray()
+				),
+				mosaicHttp.getMosaics(_),
+				nsHttp.getMosaicsNames(_)
+			)
+			.subscribe(_=>{
+				var mosaicInfos = _[1];
+				var mosaicNames = _[2]
+
+				for(var i of _[0]){
+
+					console.log(i.id.toHex());
+					var mosaicInfo = mosaicInfos.filter(function(item, index){
+					  if (item.id.toHex() == i.id.toHex()) return true;
+					});
+					var mosaicName = mosaicNames.filter(function(item, index){
+					  if (item.mosaicId.toHex() == i.id.toHex()) return true;
+					});
+			//		console.log(mosaicName[0].names[0].name);
+					if (mosaicName[0].names[0]){
+						mosaicLabel = mosaicName[0].names[0].name;
+					}else{
+						mosaicLabel = mosaicName[0].mosaicId.toHex();
+					}
+					console.log(mosaicName);
+					$("#account_info ").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
+				}
+			});
+
+
+/*
+
+			$( "#mosaic_list tbody" ).empty();
+
+			if(_.id.toHex() === CURRENCY){
+				$("#amount").text(dispAmount(_.amount.toString(),6) + " XYM");
+
+			}else{
+			
+
+				$( "#mosaic_list tbody" ).append( "<tr>" +
+					"<td class='text-left'><a href='#'><a id='mosaic_img' data-name='" + key + "' href='#'><img src='" + nemMosaicStatus[key]["url"] + "' alt='[NoImg]' width='32px'></a> " + key + "</td>" +
+					"<td>" + mosaic_balance + "</td>" +
+				"</tr>" );			
+			}
+*/
+			$('#div3').collapse('show');
+			$('#spinner_faucet').collapse('hide')
+		},err => console.log(err));
+	}
+
+
+
+
 
 	const assetHttp = accountHttp.getAccountInfo(assetPublicAccount.address)
 	const assetListener = listener.confirmed(assetPublicAccount.address)
@@ -584,16 +670,27 @@ function exeHandover(targetPulicKey){
 
 //■■■CONTROLLER■■■
 
+$("#restore").click(function(){ //復元
+
+	$('#modal-label').text("復元したいQRコードをスキャンしてください")
+	$('#div-ns').collapse('hide');
+	$('#modal-qrscan').modal('show');
+
+	startVideo("");
+});
+
 //タブ選択時
 $(".nav-item a").click( function(e){
 
 	if( this.href.indexOf("tab_transfer") > 0){
+		$('#div-ns').collapse('show');
 		$('#modal-label').text("送信先のQRコードをスキャンしてください")
 		$('#modal-qrscan').modal('show');
 		startVideo("transfer");
 
 	}else if(this.href.indexOf("tab_handover" ) > 0){
 
+		$('#div-ns').collapse('show');
 		$('#modal-label').text("譲渡先のQRコードをスキャンしてください")
 		$('#modal-qrscan').modal('show');
 		startVideo("handover");
@@ -601,6 +698,14 @@ $(".nav-item a").click( function(e){
 	}else{
 		stopVideo();
 	}
+});
+
+$('#modal-qrscan').on('hide.bs.modal', function (e) {	//スキャンモーダルが閉じられた時
+
+	stopVideo();
+	canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
+	$('#file_image').val("");
+	scanData.innerText = "";
 });
 
 //モーダルウィンドウOKクリック時
@@ -684,8 +789,6 @@ $("#modal_ok").click(function(){
 	}
 });
 
-//■■■VIEW■■■
-
 $("#list-msig").on("click",".button-msig", function() {	//マルチシグ選択
 
 	$('#modal-msig').modal('hide');
@@ -712,28 +815,6 @@ $("#create").click(function(){ //作成
 	delete signerQR;
 });
 
-$("#restore").click(function(){ //復元
-
-	$('#modal-label').text("復元したいQRコードをスキャンしてください")
-	$('#modal-qrscan').modal('show');
-	startVideo("");
-});
-
-$('#modal-qrscan').on('hide.bs.modal', function (e) {	//スキャンモーダルが閉じられた時
-
-	stopVideo();
-	canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
-	$('#file_image').val("");
-	scanData.innerText = "";
-});
-
-$('#file_image'		).change(function(e){scanFileImage();});
-$('#file_confirm'	).change(function(e){setFileHash('confirm')});
-$('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
-$("#button_handover").click(function(){exeHandover($('#scan_data_handover').text())});
-$("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer","");});
-$("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
-
 $("#button_namespace").click(function(){
 
 	namespaceId = new nem.NamespaceId('xembook1');
@@ -743,13 +824,16 @@ $("#button_namespace").click(function(){
 	    .getNamespace(namespaceId)
 	    .subscribe((namespaceInfo) => {
 			console.log(namespaceInfo)
-scanData.innerText = '{"v":3,"type":1,"data":{"name":"xemhanco.contact.1","address":"' + namespaceInfo.ownerAddress.plain() + '"}}'
-
+			scanData.innerText = '{"v":3,"type":1,"data":{"name":"xempage.contact.1","address":"' + namespaceInfo.ownerAddress.plain() + '"}}'
 		}, (err) => console.error(err));
-
-
 });
 
+$('#file_image'		).change(function(e){scanFileImage();});
+$('#file_confirm'	).change(function(e){setFileHash('confirm')});
+$('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
+$("#button_handover").click(function(){exeHandover($('#scan_data_handover').text())});
+$("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer","");});
+$("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 
 
 $("#modal_ns").click(function(){
