@@ -392,23 +392,6 @@ function setSignerListener(cosignerAccount){
 //アカウント情報表示
 function showAccountQR(x){
 
-/*
-	const accountSubscribe = function(observer){
-		observer.pipe(
-			op.mergeMap(_=>{
-				console.log(_);
-				return _.mosaics;
-			}),
-			op.filter(_ => _.id.toHex() === CURRENCY)
-		)
-		.subscribe(_=>{
-			$("#amount").text(dispAmount(_.amount.toString(),6) + " XYM");
-			$('#div3').collapse('show');
-			$('#spinner_faucet').collapse('hide')
-		},err => console.log(err));
-	}
-*/
-
 	const accountSubscribe = function(observer){
 		observer.pipe(
 			op.mergeMap(_=>{
@@ -452,30 +435,13 @@ function showAccountQR(x){
 					console.log(mosaicName);
 					$("#account_info").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
 //					$("#mosaic_transfer").append("<option id='" + mosaicName[0].mosaicId.toHex() + "’>" + mosaicLabel + "</option>");
-					$('#mosaic_transfer').append($('<option>').html(mosaicLabel).val(mosaicName[0].mosaicId.toHex()));
+					$('#mosaic_transfer').append($('<option>').html(mosaicLabel).val(mosaicName[0].mosaicId.toHex() + "," + mosaicInfo[0].divisibility));
 
 
 
 				}
 			});
 
-
-/*
-
-			$( "#mosaic_list tbody" ).empty();
-
-			if(_.id.toHex() === CURRENCY){
-				$("#amount").text(dispAmount(_.amount.toString(),6) + " XYM");
-
-			}else{
-
-
-				$( "#mosaic_list tbody" ).append( "<tr>" +
-					"<td class='text-left'><a href='#'><a id='mosaic_img' data-name='" + key + "' href='#'><img src='" + nemMosaicStatus[key]["url"] + "' alt='[NoImg]' width='32px'></a> " + key + "</td>" +
-					"<td>" + mosaic_balance + "</td>" +
-				"</tr>" );
-			}
-*/
 			$('#div3').collapse('show');
 			$('#spinner_faucet').collapse('hide')
 		},err => console.log(err));
@@ -595,13 +561,15 @@ function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
 
 function exeTransfer(targetAddress,divId,message){
 
+	mosaicValue = $("#mosaic_transfer").val().split(",");
+
 	const tx = nem.TransferTransaction.create(
 		nem.Deadline.create(),
 		targetAddress,
 		[
 			new nem.Mosaic(
-				new nem.MosaicId($("#mosaic_transfer").val()),
-				nem.UInt64.fromUint(Number($("#amount_transfer").val()) * 1000000)
+				new nem.MosaicId(mosaicValue[0]),
+				nem.UInt64.fromUint(Number($("#amount_transfer").val()) * Math.pow(10,Number(mosaicValue[1] )))
 			)
 		],
 		nem.PlainMessage.create(message),
