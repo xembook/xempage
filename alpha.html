@@ -217,9 +217,17 @@ const transactionService = new nem.TransactionService(txHttp, receiptHttp);
 
 const wsEndpoint = NODE.replace('http', 'ws') + "/ws";
 const listener = new nem.Listener(wsEndpoint,nsHttp,WebSocket);
+
 listener.open().then(() => {
-	setInterval(function(){listener.newBlock()}, 30000);
+	setInterval(function(){
+		if(listener.webSocket.readyState !== listener.webSocket.OPEN){
+			listener.webSocket = undefined;
+			listener.open();
+		}
+		listener.newBlock().subscribe(x=>console.log(x));
+	}, 30000);
 });
+
 
 //グローバル変数
 var assetPublicAccount;	//操作対象アカウント（マルチシグの場合は操作される対象のアカウント）
