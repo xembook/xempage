@@ -427,7 +427,7 @@ function setSignerListener(cosignerAccount){
 }
 
 //アカウント情報表示
-function showAccountQR(x){
+function showAccountQR(){
 
 	const accountSubscribe = function(observer){
 		observer.pipe(
@@ -820,7 +820,7 @@ $("#create").click(function(){ //作成
 
 	const signerQR = new qr.AccountQR(asset,$("#pass").val(),nem.NetworkType.TEST_NET);
 	signerQR.toBase64().subscribe(x =>{
-		showAccountQR(x);
+		showAccountQR();
 		$('#div1').collapse('hide');
 		$('#div2').collapse('show');
 //		$('#qr_account').attr('src',x);
