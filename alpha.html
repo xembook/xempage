@@ -431,6 +431,7 @@ function showAccountQR(x){
 
 	const accountSubscribe = function(observer){
 		observer.pipe(
+			op.first(),
 			op.mergeMap(_=>{
 				console.log(_);
 				return _.mosaics;
