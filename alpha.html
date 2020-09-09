@@ -21,6 +21,12 @@
 	</div><!-- div1 -->
 	<div class="collapse" id="div2">
 
+		<div>
+			<button type="button" id="button_faucet2" class="btn btn-primary">
+				<span id="spinner_faucet" class="collapse spinner-border spinner-border-sm" role="status"></span>
+				Faucet
+			</button>
+		</div>
 
 
 	</div><!-- div2 -->
@@ -34,6 +40,7 @@
 		</ul>
 		<div class="tab-content">
 			<div id="tab_contact" class="tab-pane active"><!-- アカウント -->
+				<br>
 				<div class="card" style="width: 18rem;">
 					<img class="card-img-top" id="qr_contact" alt="カードの画像">
 					<div class="card-body">
@@ -84,14 +91,24 @@
 				</div>
 			</div>
 
-			<div id="tab_setting" class="tab-pane"><!-- 譲渡 -->
+			<div id="tab_setting" class="tab-pane"><!-- 設定 -->
+				<br>
 				<div>
 					<button type="button" id="button_qr" class="btn btn-primary">
 						鍵情報表示
 					</button>
 				</div>
-				<div><img id="qr_account"></div>
-				<div id="qr_key"></div>
+				<br>
+
+				<div class="collapse" id="div-setting">
+					<div class="card" style="width: 18rem;">
+						<img class="card-img-top" id="qr_account" alt="カードの画像">
+						<div class="card-body">
+							<h5 class="card-title">秘密鍵</h5>
+							<p class="card-text" id="qr_key"></p>
+						</div>
+					</div>
+				</div>
 			</div>
 
 		</div><!-- tab-content -->
@@ -418,12 +435,15 @@ function showAccountQR(x){
 				console.log(_);
 				return _.mosaics;
 			}),
-			op.map(_ => _.id),
+			op.map(_ => {
+				console.log(_);
+				return _.id;
+			}),
 			op.toArray()
 
 		)
 		.subscribe(_=>{
-
+			console.log(_);
 			rxjs.zip(
 				observer
 				.pipe(
@@ -466,6 +486,7 @@ function showAccountQR(x){
 			$('#spinner_faucet').collapse('hide')
 		},err => console.log(err));
 	}
+
 
 
 
@@ -827,11 +848,14 @@ $('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
 $("#button_handover").click(function(){exeHandover($('#scan_data_handover').text())});
 $("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer",$('#message_transfer').val());});
 $("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
+$("#button_faucet2"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 $("#button_qr"	).click(function(){
 	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
 	signerQR.toBase64().subscribe(x =>{
 		$('#qr_account').attr('src',x);
 		$('#qr_key').text(signerQR.account.privateKey);
+		$('#div-setting').collapse('show');
+
 	});
 
 });
