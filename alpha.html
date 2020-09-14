@@ -19,17 +19,7 @@
 		<button type="button" id="create" class="btn btn-primary">作成</button>
 		<button type="button" id="restore" class="btn btn-primary">復元</button>
 	</div><!-- div1 -->
-	<div class="collapse" id="div2">
 
-		<div>
-			<button type="button" id="button_faucet2" class="btn btn-primary">
-				<span id="spinner_faucet" class="collapse spinner-border spinner-border-sm" role="status"></span>
-				Faucet
-			</button>
-		</div>
-
-
-	</div><!-- div2 -->
 	<div class="collapse" id="div3">
 		<hr>
 		<ul class="nav nav-tabs">
@@ -201,10 +191,10 @@ const CURRENCY = "5E62990DCAC5BE8A";
 const GENERATION_HASH = "1DFB2FAA9E7F054168B0C5FCB84F4DEB62CC2B4D317D861F3168D161F54EA78B";
 
 
-const NODE = 'https://sym-test964.opening-line.jp:3001';
+//const NODE = 'https://sym-test963.opening-line.jp:3001';
 //const NODE   = 'https://0964-api.48gh23s.xyz:3001';
 //const NODE = "https://conif1.tsvr.net:3001";
-//const NODE = 'http://api-01.ap-northeast-1.096x.symboldev.network:3000';
+const NODE = 'http://api-01.ap-northeast-1.096x.symboldev.network:3000';
 const FAUCET   = 'http://faucet-96x-01.symboldev.network';
 const EXPLORER = 'http://explorer-96x.symboldev.network';
 
@@ -240,8 +230,10 @@ listener.open().then(() => {
 		if(listener.webSocket.readyState !== listener.webSocket.OPEN){
 			listener.webSocket = undefined;
 			listener.open();
+		}else{
+			listener.newBlock();
+
 		}
-		listener.newBlock().subscribe(x=>console.log(x));
 	}, 30000);
 });
 
@@ -429,28 +421,35 @@ function setSignerListener(cosignerAccount){
 //アカウント情報表示
 function showAccountQR(){
 
-	const accountSubscribe = function(observer){
+
+
+
+
+
+
+
+	const accountSubscribe = function(observer,observer2){
+		var mosaics;
 		observer.pipe(
 			op.first(),
 			op.mergeMap(_=>{
 				console.log(_);
+				mosaics = rxjs.of(_.mosaics);
 				return _.mosaics;
 			}),
 			op.map(_ => {
 				console.log(_);
 				return _.id;
 			}),
-			op.toArray()
-
+			op.toArray(),
+			op.repeat()
 		)
 		.subscribe(_=>{
+
 			console.log(_);
+
 			rxjs.zip(
-				observer
-				.pipe(
-					op.mergeMap(_=>_.mosaics),
-					op.toArray()
-				),
+				mosaics,
 				mosaicHttp.getMosaics(_),
 				nsHttp.getMosaicsNames(_)
 			)
@@ -474,8 +473,11 @@ function showAccountQR(){
 						mosaicLabel = mosaicName[0].mosaicId.toHex();
 					}
 					console.log(mosaicName);
+$("#account_info").empty();
+
 					$("#account_info").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
 //					$("#mosaic_transfer").append("<option id='" + mosaicName[0].mosaicId.toHex() + "’>" + mosaicLabel + "</option>");
+$("#mosaic_transfer").empty();
 					$('#mosaic_transfer').append($('<option>').html(mosaicLabel).val(mosaicName[0].mosaicId.toHex() + "," + mosaicInfo[0].divisibility));
 
 
@@ -496,9 +498,13 @@ function showAccountQR(){
 	const assetHttp = accountHttp.getAccountInfo(assetPublicAccount.address)
 	const assetListener = listener.confirmed(assetPublicAccount.address)
 	.pipe(
+//		op.first(),
 		op.delay(1000),
 		op.mergeMap(x=>accountHttp.getAccountInfo(assetPublicAccount.address)),
-	);
+	)
+
+
+
 
 	accountSubscribe(assetHttp);
 	accountSubscribe(assetListener);
@@ -822,7 +828,8 @@ $("#create").click(function(){ //作成
 	signerQR.toBase64().subscribe(x =>{
 		showAccountQR();
 		$('#div1').collapse('hide');
-		$('#div2').collapse('show');
+//		$('#div2').collapse('show');
+		$('#div3').collapse('show');
 //		$('#qr_account').attr('src',x);
 	});
 	signerJSON = signerQR.toJSON();
