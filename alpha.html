@@ -16,6 +16,11 @@
 	<div class="collapse" id="div1">
 		<label>パスフレーズ:</label>
 		<input type="text" id="pass" class="form-control">
+		<div id="div_use_saved_qr" class="form-group form-check collapse">
+	       <input type="checkbox" class="form-check-input" id="use_saved_qr">
+	       <label class="form-check-label" for="exampleCheck1">保存されたアカウント情報を復元時に使用する</label>
+	    </div>
+
 		<button type="button" id="create" class="btn btn-primary">作成</button>
 		<button type="button" id="restore" class="btn btn-primary">復元</button>
 	</div><!-- div1 -->
@@ -36,11 +41,8 @@
 					<div class="card-body">
 						<h5 class="card-title">アドレス</h5>
 						<p class="card-text" id="text_contact"></p>
-
 						<div>
-							<dl id="account_info">
-							</dl>
-
+							<dl id="account_info"></dl>
 						</div>
 						<div>
 							<button type="button" id="button_faucet" class="btn btn-primary">
@@ -48,15 +50,11 @@
 								Faucet
 							</button>
 						</div>
-
-
-
-
 					</div>
 				</div>
 			</div>
 			<div id="tab_transfer" class="tab-pane"><!-- 送信 -->
-				<div><b>送信先公開鍵:</b> <span id="scan_data_transfer" class="text-break"></span></div>
+				<!-- <div><b>送信先公開鍵:</b> <span id="scan_data_transfer" class="text-break"></span></div>-->
 				<div><b>送信先アドレス:</b> <span id="scan_data_transfer_address" class="text-break"></span></div>
 				<div><b>送信モザイク:</b> <select class="form-control" id="mosaic_transfer" name="number"></select>
 				</div>
@@ -94,6 +92,7 @@
 					<div class="card" style="width: 18rem;">
 						<img class="card-img-top" id="qr_account" alt="カードの画像">
 						<div class="card-body">
+							<p class="card-text bg-danger text-white" >鍵情報を控えた後はブラウザを閉じてください</p>
 							<h5 class="card-title">秘密鍵</h5>
 							<p class="card-text" id="qr_key"></p>
 						</div>
@@ -117,8 +116,9 @@
 			</div>
 			<div class="modal-body">
 				<label id="modal-label"></label>
+
 				<div class="input-group">
-					<label class="input-group-btn">
+					<label class="input-group-btn mr-1">
 						<span class="btn btn-primary">
 							画像でスキャン<input id="file_image" type="file" style="display:none">
 						</span>
@@ -126,7 +126,12 @@
 					<span  class="collapse" id="div-ns">
 						<label class="input-group-btn">
 							<span class="btn btn-primary">
-								ネームスペース選択<input id="modal_ns" type="button" style="display:none">
+								アドレス<input id="modal_address" type="button" style="display:none">
+							</span>
+						</label>
+						<label class="input-group-btn">
+							<span class="btn btn-primary">
+								ネームスペース<input id="modal_ns" type="button" style="display:none">
 							</span>
 						</label>
 					</span>
@@ -134,12 +139,17 @@
 
 
 				<canvas id="canvas" hidden></canvas>
-				<div id="scan_data" class="text-break"></div>
 				<div class="collapse" id="div-qrscan">
 					<label>ネームスペース:</label>
 					<input type="text" id="text_namespace" class="form-control">
 					<button type="button"  id="button_namespace" class="btn btn-primary" >検索</button>
-				</div><!-- div1 -->
+				</div>
+				<div class="collapse" id="div-qrscan-address">
+					<label>アドレス:</label>
+					<input type="text" id="text_address" class="form-control">
+					<button type="button"  id="button_address" class="btn btn-primary" >検索</button>
+				</div>
+				<div id="scan_data" class="text-break"></div>
 
 			</div>
 			<div class="modal-footer">
@@ -243,10 +253,11 @@ var assetPublicAccount;	//操作対象アカウント（マルチシグの場合
 var signerJSON;			//暗号化済み署名者アカウント
 var canvasElement;
 var canvas;
-var scanData;
+
 var currentTab;			//カメラ操作している場合の現在選択中のタブ
 var isMovieScanning = false;
 var video = document.createElement("video");
+var scanData	  = document.getElementById("scan_data");
 
 
 //QRコードスキャン関連///////////////////////////////////
@@ -292,7 +303,6 @@ function startVideo(divId){
 	isMovieScanning = true;
 	canvasElement = document.getElementById("canvas");
 	canvas		  = canvasElement.getContext("2d");
-	scanData	  = document.getElementById("scan_data");
 
 	navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) {
 		video.srcObject = stream;
@@ -421,29 +431,38 @@ function setSignerListener(cosignerAccount){
 //アカウント情報表示
 function showAccountQR(){
 
+	var mosaics;
 
+	const mosaicIdSubscribe = function(observer){
 
+		return 	observer.pipe(
+			op.mergeMap(_=>{
+				mosaics = rxjs.of(_.mosaics);
+				return _.mosaics;
+			}),
+			op.map(_ =>  _.id),
+			op.toArray(),
+		);
+	}
 
+	const mosaicIdSubscribe2 = function(observer){
 
-
-
-
-	const accountSubscribe = function(observer,observer2){
-		var mosaics;
-		observer.pipe(
+		return 	observer.pipe(
 			op.first(),
 			op.mergeMap(_=>{
 				console.log(_);
 				mosaics = rxjs.of(_.mosaics);
 				return _.mosaics;
 			}),
-			op.map(_ => {
-				console.log(_);
-				return _.id;
-			}),
+			op.map(_ =>  _.id),
 			op.toArray(),
 			op.repeat()
-		)
+		);
+	}
+
+	const accountSubscribe = function(observer,subscriber){
+
+		subscriber(observer)
 		.subscribe(_=>{
 
 			console.log(_);
@@ -456,6 +475,9 @@ function showAccountQR(){
 			.subscribe(_=>{
 				var mosaicInfos = _[1];
 				var mosaicNames = _[2]
+
+				$("#account_info").empty();
+				$("#mosaic_transfer").empty();
 
 				for(var i of _[0]){
 
@@ -473,15 +495,10 @@ function showAccountQR(){
 						mosaicLabel = mosaicName[0].mosaicId.toHex();
 					}
 					console.log(mosaicName);
-$("#account_info").empty();
 
 					$("#account_info").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
 //					$("#mosaic_transfer").append("<option id='" + mosaicName[0].mosaicId.toHex() + "’>" + mosaicLabel + "</option>");
-$("#mosaic_transfer").empty();
 					$('#mosaic_transfer').append($('<option>').html(mosaicLabel).val(mosaicName[0].mosaicId.toHex() + "," + mosaicInfo[0].divisibility));
-
-
-
 				}
 			});
 
@@ -490,24 +507,17 @@ $("#mosaic_transfer").empty();
 		},err => console.log(err));
 	}
 
-
-
-
-
-
 	const assetHttp = accountHttp.getAccountInfo(assetPublicAccount.address)
 	const assetListener = listener.confirmed(assetPublicAccount.address)
 	.pipe(
-//		op.first(),
 		op.delay(1000),
 		op.mergeMap(x=>accountHttp.getAccountInfo(assetPublicAccount.address)),
+//		op.mergeMap(x=>assetHttp),
+
 	)
 
-
-
-
-	accountSubscribe(assetHttp);
-	accountSubscribe(assetListener);
+	accountSubscribe(assetHttp,mosaicIdSubscribe);
+	accountSubscribe(assetListener,mosaicIdSubscribe2);
 
 	//未承認トランザクション受信（スピナー回す）
 	//TODO: アグリゲートトランザクション未対応
@@ -693,11 +703,18 @@ function exeHandover(targetPulicKey){
 
 $("#restore").click(function(){ //復元
 
-	$('#modal-label').text("復元したいQRコードをスキャンしてください")
-	$('#div-ns').collapse('hide');
-	$('#modal-qrscan').modal('show');
+	if($("#use_saved_qr:checked").val()){
+//		scanData.innerText = localStorage.getItem('signerJSON') ;
+		restoreAccount(localStorage.getItem('signerJSON'));
+		showAccountQR()
+	}else{
+		$('#modal-label').text("復元したいQRコードをスキャンしてください")
+		$('#div-ns').collapse('hide');
+		$('#modal-qrscan').modal('show');
 
-	startVideo("");
+		startVideo("");
+
+	}
 });
 
 //タブ選択時
@@ -737,9 +754,15 @@ $("#modal_ok").click(function(){
 
 	if(currentTab == "tab_transfer"){	//送信
 
-		$('#scan_data_transfer').text(jsonData.publicKey);
-		const targetPublicAccount = nem.PublicAccount.createFromPublicKey(jsonData.publicKey,nem.NetworkType.TEST_NET)
-		$('#scan_data_transfer_address').text(targetPublicAccount.address.plain());
+		if(jsonData.publicKey === undefined){
+			$('#scan_data_transfer_address').text(jsonData.address);
+
+		}else{
+//			$('#scan_data_transfer').text(jsonData.publicKey);
+			const targetPublicAccount = nem.PublicAccount.createFromPublicKey(jsonData.publicKey,nem.NetworkType.TEST_NET)
+			$('#scan_data_transfer_address').text(targetPublicAccount.address.plain());
+
+		}
 
 	}else if(currentTab == "tab_handover"){	//譲渡
 
@@ -747,68 +770,74 @@ $("#modal_ok").click(function(){
 
 	}else if(currentTab == "tab_"){	//復元
 
-		try{
-			const signerQR = qr.AccountQR.fromJSON(scanData.innerText,$("#pass").val());
-			//QRコードライブラリのAccountクラス使用を避けるため、Symbol-sdkのAccountクラスに置き換える
-			assetPublicAccount = nem.PublicAccount.createFromPublicKey(
-				signerQR.account.publicKey,nem.NetworkType.TEST_NET
-			);
-			setSignerListener(assetPublicAccount);
-			signerQR.toBase64().subscribe(x => {
-				$('#div1').collapse('hide');
-				$('#div2').collapse('show');
-//				$('#qr_account').attr('src',x);
-			});
-			signerJSON = signerQR.toJSON();
-			delete signerQR;
-		}
-		catch (e) {
-			console.log(e);
-			return false;
-		}
-
-		const appendList = function(publicKey,name){
-			$('#list-msig ul')
-			.append('<button type="button" publicKey="'
-			+ publicKey
-			+'" data-toggle="msig" class="button-msig list-group-item list-group-item-action">'
-			+ name
-			+ '</button>'
-			);
-		};
-
-		//マルチシグ保有調査
-		multisigHttp.getMultisigAccountInfo(assetPublicAccount.address)
-		.subscribe(_=>{
-
-			if(_.multisigAddresses.length > 0){
-
-				appendList(assetPublicAccount.publicKey,"メインアカウント");
-				accountHttp.getAccountsInfo(_.multisigAddresses)
-				.subscribe(items => {
-
-					for (item of items) {
-						appendList(item.publicKey,item.address.plain());
-					}
-				})
-				$('#modal-msig').modal('show');
-			}else{
-				if(_.cosignatories.length > 0){
-					alert("すでに譲渡されたアカウントです。");
-				}
-				showAccountQR();
-			}
-		},
-		err=>{
-			if(err.toString().indexOf("ResourceNotFound")  > 0){
-				showAccountQR();
-			}else{
-				alert(err);
-			}
-		},
-		()=>$('#div3').collapse('show'));
+		restoreAccount(scanData.innerText);
 	}
 });
+
+function restoreAccount(textQR){
+
+	try{
+		const signerQR = qr.AccountQR.fromJSON(textQR,$("#pass").val());
+		//QRコードライブラリのAccountクラス使用を避けるため、Symbol-sdkのAccountクラスに置き換える
+		assetPublicAccount = nem.PublicAccount.createFromPublicKey(
+			signerQR.account.publicKey,nem.NetworkType.TEST_NET
+		);
+		setSignerListener(assetPublicAccount);
+		signerQR.toBase64().subscribe(x => {
+			$('#div1').collapse('hide');
+			$('#div2').collapse('show');
+//				$('#qr_account').attr('src',x);
+		});
+		signerJSON = signerQR.toJSON();
+		delete signerQR;
+	}
+	catch (e) {
+		console.log(e);
+		return false;
+	}
+
+	const appendList = function(publicKey,name){
+		$('#list-msig ul')
+		.append('<button type="button" publicKey="'
+		+ publicKey
+		+'" data-toggle="msig" class="button-msig list-group-item list-group-item-action">'
+		+ name
+		+ '</button>'
+		);
+	};
+
+	//マルチシグ保有調査
+	multisigHttp.getMultisigAccountInfo(assetPublicAccount.address)
+	.subscribe(_=>{
+
+		if(_.multisigAddresses.length > 0){
+
+			appendList(assetPublicAccount.publicKey,"メインアカウント");
+			accountHttp.getAccountsInfo(_.multisigAddresses)
+			.subscribe(items => {
+
+				for (item of items) {
+					appendList(item.publicKey,item.address.plain());
+				}
+			})
+			$('#modal-msig').modal('show');
+		}else{
+			if(_.cosignatories.length > 0){
+				alert("すでに譲渡されたアカウントです。");
+			}
+			showAccountQR();
+		}
+	},
+	err=>{
+		if(err.toString().indexOf("ResourceNotFound")  > 0){
+			showAccountQR();
+		}else{
+			alert(err);
+		}
+	},
+	()=>$('#div3').collapse('show'));
+}
+
 
 $("#list-msig").on("click",".button-msig", function() {	//マルチシグ選択
 
@@ -833,6 +862,16 @@ $("#create").click(function(){ //作成
 //		$('#qr_account').attr('src',x);
 	});
 	signerJSON = signerQR.toJSON();
+
+	var msg = "アカウント情報を保存しますか？";
+	if(localStorage.getItem('signerJSON') !== null){
+		msg += "\n以前に保存した情報は上書きされます。";
+	}
+
+	if(window.confirm(msg)){
+		localStorage.setItem('signerJSON',signerJSON);
+	}
+
 	delete asset;
 	delete signerQR;
 });
@@ -849,6 +888,14 @@ $("#button_namespace").click(function(){
 			scanData.innerText = '{"v":3,"type":1,"data":{"name":"xempage.contact.1","address":"' + namespaceInfo.ownerAddress.plain() + '"}}'
 		}, (err) => console.error(err));
 });
+
+$("#button_address").click(function(){
+
+	scanData.innerText = '{"v":3,"type":1,"data":{"name":"xempage.contact.1","address":"' + $("#text_address").val() + '"}}'
+
+
+});
+
 
 $('#file_image'		).change(function(e){scanFileImage();});
 $('#file_confirm'	).change(function(e){setFileHash('confirm')});
@@ -871,8 +918,29 @@ $("#button_qr"	).click(function(){
 
 $("#modal_ns").click(function(){
 	$('#div-qrscan').collapse('show');
+	$('#div-qrscan-address').collapse('hide');
+	console.log($('#div-qrscan').css("visibility"));
+	console.log($('#div-qrscan-address').css("visibility"));
+
 
 });
+
+$("#modal_address").click(function(){
+	$('#div-qrscan-address').collapse('show');
+	$('#div-qrscan').collapse('hide');
+});
+
+
+if(localStorage.getItem('signerJSON') == null){
+
+	$('#use_saved_qr').prop('checked', false);
+
+}else{
+	$('#div_use_saved_qr').collapse('show');
+
+	$('#use_saved_qr').prop('checked', true);
+}
+
 
 $('#div1').collapse('show');//アプリケーション開始
 })</script>
