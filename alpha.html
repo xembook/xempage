@@ -10,7 +10,7 @@
 	crossorigin="anonymous">
 </head>
 <body>
-	
+
 <div class="container">
 
 	<h1>XEMPage</h1>
@@ -903,7 +903,8 @@ $('#file_image'		).change(function(e){scanFileImage();});
 $('#file_confirm'	).change(function(e){setFileHash('confirm')});
 $('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
 $("#button_handover").click(function(){exeHandover($('#scan_data_handover').text())});
-$("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer",$('#message_transfer').val());});
+//$("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer",$('#message_transfer').val());});
+$("#button_transfer").click(function(){exeTransfer(nem.Address.createFromRawAddress($('#scan_data_transfer_address').text()),"transfer",$('#message_transfer').val());});
 $("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 $("#button_faucet2"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 $("#button_qr"	).click(function(){
