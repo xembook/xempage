@@ -55,7 +55,6 @@
 				</div>
 			</div>
 			<div id="tab_transfer" class="tab-pane"><!-- 送信 -->
-				<!-- <div><b>送信先公開鍵:</b> <span id="scan_data_transfer" class="text-break"></span></div>-->
 				<div><b>送信先アドレス:</b> <span id="scan_data_transfer_address" class="text-break"></span></div>
 				<div><b>送信モザイク:</b> <select class="form-control" id="mosaic_transfer" name="number"></select>
 				</div>
@@ -254,6 +253,7 @@ listener.webSocket.onclose = function(){
 //グローバル変数
 var assetPublicAccount;	//操作対象アカウント（マルチシグの場合は操作される対象のアカウント）
 var signerJSON;			//暗号化済み署名者アカウント
+
 var canvasElement;
 var canvas;
 
@@ -738,7 +738,6 @@ $("#modal_ok").click(function(){
 			$('#scan_data_transfer_address').text(jsonData.address);
 
 		}else{
-//			$('#scan_data_transfer').text(jsonData.publicKey);
 			const targetPublicAccount = nem.PublicAccount.createFromPublicKey(jsonData.publicKey,nem.NetworkType.TEST_NET)
 			$('#scan_data_transfer_address').text(targetPublicAccount.address.plain());
 		}
@@ -872,10 +871,8 @@ $('#file_image'		).change(function(e){scanFileImage();});
 $('#file_confirm'	).change(function(e){setFileHash('confirm')});
 $('#file_selfsign'	).change(function(e){setFileHash('selfsign')});
 $("#button_handover").click(function(){exeHandover($('#scan_data_handover').text())});
-//$("#button_transfer").click(function(){exeTransfer(assetPublicAccount.address,"transfer",$('#message_transfer').val());});
 $("#button_transfer").click(function(){exeTransfer(nem.Address.createFromRawAddress($('#scan_data_transfer_address').text()),"transfer",$('#message_transfer').val());});
 $("#button_faucet"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
-$("#button_faucet2"	).click(function(){window.open(FAUCET + "/?recipient=" + assetPublicAccount.address.plain() + "&amount=20","_blank")});
 $("#button_qr"	).click(function(){
 	const signerQR = qr.AccountQR.fromJSON(signerJSON,window.prompt("パスフレーズを入力してください", ""));
 	signerQR.toBase64().subscribe(x =>{
