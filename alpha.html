@@ -241,16 +241,15 @@ const listener = new nem.Listener(wsEndpoint,nsHttp,WebSocket);
 
 listener.open().then(() => {
 	setInterval(function(){
-		if(listener.webSocket.readyState !== listener.webSocket.OPEN){
-			listener.webSocket = undefined;
-			listener.open();
-		}else{
-			listener.newBlock();
-
-		}
+		listener.newBlock();
 	}, 30000);
 });
 
+listener.webSocket.onclose = function(){
+	listener.open().then(() => {
+		showAccountQR();
+	});
+}
 
 //グローバル変数
 var assetPublicAccount;	//操作対象アカウント（マルチシグの場合は操作される対象のアカウント）
@@ -372,10 +371,10 @@ function scanFileImage(){
 ////////////////////////////////////////////////////////
 
 //選択中アカウントの完了トランザクション検知リスナー
-const assetSignedTxConfirmed = function(signedTxHash){
+const signedTxConfirmed = function(address,hash){
 
-	const transactionObservable = listener.confirmed(assetPublicAccount.address);
-	const errorObservable = listener.status(assetPublicAccount.address, signedTxHash);
+	const transactionObservable = listener.confirmed(address);
+	const errorObservable = listener.status(address, hash);
 	return rxjs.merge(transactionObservable, errorObservable).pipe(
 		op.first(),
 		op.map((errorOrTransaction) => {
@@ -409,7 +408,7 @@ function setSignerListener(cosignerAccount){
 			}),
 			op.mergeMap(_=>{
 				console.log(_);
-				return assetSignedTxConfirmed(_.hash);
+				return signedTxConfirmed(assetPublicAccount.address,_.hash);
 			})
 		)
 		.subscribe(
@@ -437,9 +436,9 @@ function showAccountQR(){
 
 	var mosaics;
 
-	const mosaicIdSubscribe = function(observer){
+	const opMergeMosaics  = function(){
 
-		return 	observer.pipe(
+		return 	rxjs.pipe(
 			op.mergeMap(_=>{
 				mosaics = rxjs.of(_.mosaics);
 				return _.mosaics;
@@ -449,27 +448,9 @@ function showAccountQR(){
 		);
 	}
 
-	const mosaicIdSubscribe2 = function(observer){
+	const accountSubscribe = function(observer){
 
-		return 	observer.pipe(
-			op.first(),
-			op.mergeMap(_=>{
-				console.log(_);
-				mosaics = rxjs.of(_.mosaics);
-				return _.mosaics;
-			}),
-			op.map(_ =>  _.id),
-			op.toArray(),
-			op.repeat()
-		);
-	}
-
-	const accountSubscribe = function(observer,subscriber){
-
-		subscriber(observer)
-		.subscribe(_=>{
-
-			console.log(_);
+		observer.subscribe(_=>{
 
 			rxjs.zip(
 				mosaics,
@@ -492,7 +473,6 @@ function showAccountQR(){
 					var mosaicName = mosaicNames.filter(function(item, index){
 					  if (item.mosaicId.toHex() == i.id.toHex()) return true;
 					});
-			//		console.log(mosaicName[0].names[0].name);
 					if (mosaicName[0].names[0]){
 						mosaicLabel = mosaicName[0].names[0].name;
 					}else{
@@ -501,7 +481,6 @@ function showAccountQR(){
 					console.log(mosaicName);
 
 					$("#account_info").append("<dt>[" + mosaicLabel + "]</dt><dd>" + dispAmount(i.amount.toString(),mosaicInfo[0].divisibility) + "</dd>");
-//					$("#mosaic_transfer").append("<option id='" + mosaicName[0].mosaicId.toHex() + "’>" + mosaicLabel + "</option>");
 					$('#mosaic_transfer').append($('<option>').html(mosaicLabel).val(mosaicName[0].mosaicId.toHex() + "," + mosaicInfo[0].divisibility));
 				}
 			});
@@ -512,16 +491,21 @@ function showAccountQR(){
 	}
 
 	const assetHttp = accountHttp.getAccountInfo(assetPublicAccount.address)
+	.pipe(
+		opMergeMosaics()
+	);
+
 	const assetListener = listener.confirmed(assetPublicAccount.address)
 	.pipe(
 		op.delay(1000),
 		op.mergeMap(x=>accountHttp.getAccountInfo(assetPublicAccount.address)),
-//		op.mergeMap(x=>assetHttp),
-
+		op.first(),
+		opMergeMosaics(),
+		op.repeat()
 	)
 
-	accountSubscribe(assetHttp,mosaicIdSubscribe);
-	accountSubscribe(assetListener,mosaicIdSubscribe2);
+	accountSubscribe(assetHttp);
+	accountSubscribe(assetListener);
 
 	//未承認トランザクション受信（スピナー回す）
 	//TODO: アグリゲートトランザクション未対応
@@ -548,12 +532,12 @@ function showAccountQR(){
 }
 
 //アグリゲートボンデッドトランザクション
-function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
+function exeAggBondedTx(tx,targetPublicAccount,signer,callback,final){
 
 	const aggregateTx = nem.AggregateTransaction.createBonded(
 		nem.Deadline.create(),
 		[
-			metaTx.toAggregate(assetPublicAccount)
+			tx.toAggregate(assetPublicAccount)
 		],
 		nem.NetworkType.TEST_NET,[],
 		nem.UInt64.fromUint(2000000)
@@ -586,7 +570,6 @@ function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
 
 	console.log(NODE + "/transactionStatus/" + signedAggregateTx.hash);
 	console.log(NODE + "/transactions/confirmed/" + signedAggregateTx.hash);
-
 	console.log(NODE + "/transactionStatus/" + signedLockTx.hash);
 	console.log(NODE + "/transactions/confirmed/" + signedLockTx.hash);
 
@@ -597,20 +580,7 @@ function exeAggBondedTx(metaTx,targetPublicAccount,signer,callback,final){
 
 	).subscribe(aggTx => {
 
-		//targetアカウントを監視する//
-		const transactionObservable = listener.confirmed(targetPublicAccount.address);
-		const errorObservable = listener.status(targetPublicAccount.address, aggTx.transactionInfo.hash);
-		rxjs.merge(transactionObservable, errorObservable)
-		.pipe(
-			op.first(),
-			op.map((errorOrTransaction) => {
-				if (errorOrTransaction.constructor.name === "TransactionStatusError") {
-					throw new Error(errorOrTransaction.code);
-				} else {
-					return errorOrTransaction;
-				}
-			}),
-		)
+		signedTxConfirmed(assetPublicAccount.address,aggTx.transactionInfo.hash)
 		.subscribe(tx => {
 			callback(tx);
 		},err =>{
@@ -655,7 +625,7 @@ function exeTransfer(targetAddress,divId,message){
 	const txHttp = new nem.TransactionHttp(NODE);
 	txHttp.announce(signedTx)
 	.pipe(
-		op.mergeMap(_=> assetSignedTxConfirmed(signedTx.hash))
+		op.mergeMap(_=> signedTxConfirmed(assetPublicAccount.address, signedTx.hash))
 	)
 	.subscribe(function(_){
 
@@ -696,11 +666,18 @@ function exeHandover(targetPulicKey){
 	}
 
 	$('#spinner_handover').collapse('show');
-	exeAggBondedTx(msigTx,targetPublicAccount,signerQR.account,function(){
+
+	exeAggBondedTx(msigTx,targetPublicAccount,signerQR.account,
+	function(){ //callback
 
 		alert("譲渡完了しました");
 		delete signerQR;
-	},function(){$('#spinner_handover').collapse('hide')});
+
+	},
+	function(){ //final
+
+		$('#spinner_handover').collapse('hide');
+	});
 }
 
 //■■■CONTROLLER■■■
@@ -717,7 +694,6 @@ $("#restore").click(function(){ //復元
 		$('#modal-qrscan').modal('show');
 
 		startVideo("");
-
 	}
 });
 
@@ -765,7 +741,6 @@ $("#modal_ok").click(function(){
 //			$('#scan_data_transfer').text(jsonData.publicKey);
 			const targetPublicAccount = nem.PublicAccount.createFromPublicKey(jsonData.publicKey,nem.NetworkType.TEST_NET)
 			$('#scan_data_transfer_address').text(targetPublicAccount.address.plain());
-
 		}
 
 	}else if(currentTab == "tab_handover"){	//譲渡
@@ -790,7 +765,6 @@ function restoreAccount(textQR){
 		signerQR.toBase64().subscribe(x => {
 			$('#div1').collapse('hide');
 			$('#div2').collapse('show');
-//				$('#qr_account').attr('src',x);
 		});
 		signerJSON = signerQR.toJSON();
 		delete signerQR;
@@ -842,7 +816,6 @@ function restoreAccount(textQR){
 	()=>$('#div3').collapse('show'));
 }
 
-
 $("#list-msig").on("click",".button-msig", function() {	//マルチシグ選択
 
 	$('#modal-msig').modal('hide');
@@ -861,9 +834,7 @@ $("#create").click(function(){ //作成
 	signerQR.toBase64().subscribe(x =>{
 		showAccountQR();
 		$('#div1').collapse('hide');
-//		$('#div2').collapse('show');
 		$('#div3').collapse('show');
-//		$('#qr_account').attr('src',x);
 	});
 	signerJSON = signerQR.toJSON();
 
@@ -884,10 +855,9 @@ $("#button_namespace").click(function(){
 
 	namespaceId = new nem.NamespaceId('xembook1');
 	namespaceHttp = repo.createNamespaceRepository();
-
 	namespaceHttp
-	    .getNamespace(namespaceId)
-	    .subscribe((namespaceInfo) => {
+		.getNamespace(namespaceId)
+		.subscribe((namespaceInfo) => {
 			console.log(namespaceInfo)
 			scanData.innerText = '{"v":3,"type":1,"data":{"name":"xempage.contact.1","address":"' + namespaceInfo.ownerAddress.plain() + '"}}'
 		}, (err) => console.error(err));
@@ -896,10 +866,7 @@ $("#button_namespace").click(function(){
 $("#button_address").click(function(){
 
 	scanData.innerText = '{"v":3,"type":1,"data":{"name":"xempage.contact.1","address":"' + $("#text_address").val() + '"}}'
-
-
 });
-
 
 $('#file_image'		).change(function(e){scanFileImage();});
 $('#file_confirm'	).change(function(e){setFileHash('confirm')});
@@ -917,17 +884,13 @@ $("#button_qr"	).click(function(){
 		$('#div-setting').collapse('show');
 
 	});
-
 });
-
 
 $("#modal_ns").click(function(){
 	$('#div-qrscan').collapse('show');
 	$('#div-qrscan-address').collapse('hide');
 	console.log($('#div-qrscan').css("visibility"));
 	console.log($('#div-qrscan-address').css("visibility"));
-
-
 });
 
 $("#modal_address").click(function(){
@@ -935,17 +898,14 @@ $("#modal_address").click(function(){
 	$('#div-qrscan').collapse('hide');
 });
 
-
 if(localStorage.getItem('signerJSON') == null){
 
 	$('#use_saved_qr').prop('checked', false);
 
 }else{
 	$('#div_use_saved_qr').collapse('show');
-
 	$('#use_saved_qr').prop('checked', true);
 }
-
 
 $('#div1').collapse('show');//アプリケーション開始
 })</script>
